@@ -123,7 +123,7 @@ class GPT(nn.Module):
             loss = F.cross_entropy(logits, target)
         return (logits, loss)
 
-    def generate(self, tokenizer, out_fn, progress, idx: Tensor, max_tokens_generate: int, temperature: int = 1, top_k: float = 0.0, top_p: float = 1.0):
+    def generate(self, tokenizer, out_fn, progress, idx: Tensor, max_tokens_generate: int, temperature: int = 1, top_k: int = 0.0, top_p: float = 1.0):
         # idx (B, T)
         for count in range(max_tokens_generate):
             # crop it to get latest <max_length> tokens since pos_emb only has max_length size
@@ -135,7 +135,12 @@ class GPT(nn.Module):
 
             probs = F.softmax(logits, dim=1)
             idx_next = torch.multinomial(probs, num_samples=1)
-            out_fn(tokenizer.decode([idx_next]))
+            idx_item = idx_next.item()
+            if (idx_item == 0):
+                progress_bar, progress_text = progress
+                progress_bar.progress(100, text=progress_text)
+                break
+            out_fn(tokenizer.decode(idx_item))
             idx = torch.cat((idx, idx_next), dim=1)
             progress_bar, progress_text = progress
             progress_bar.progress(math.floor(

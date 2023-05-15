@@ -24,7 +24,7 @@ def load_model(model_file, cfg):
 @st.cache_resource
 def load_tokenizer(tokenizer_file, mode):
 	if mode == 'bpe':
-		tokenizer = GPT2TokenizerFast(tokenizer_file = tokenizer_file, model_max_length=256)		
+		tokenizer = GPT2TokenizerFast(tokenizer_file = tokenizer_file, model_max_length=256)
 	elif mode == 'char':
 		tokenizer = Tokenizer(tokenizer_file=tokenizer_file)
 	else:
@@ -48,7 +48,7 @@ with open('config/config.json', 'r') as f:
 cfg = GPTConfig(**config)
 
 with st.spinner('Loading Model...'):
-	model = load_model('models/recipeBPE-2.2876', cfg)
+	model = load_model('models/recipeBPE-2.2876.pth', cfg)
 	tokenizer = load_tokenizer('config/tokenizer.json', 'bpe')
 
 with st.form("input"):
@@ -78,7 +78,7 @@ if submitted:
 				buffer.write(b + '')
 				output_fn(buffer.getvalue() + '')
 			out_fn(context_str)
-			response = tokenizer.decode(model.generate(tokenizer.decode, out_fn=out_fn, progress=(progress_bar, progress_text), idx=context, max_tokens_generate=n_tokens, temperature=temperature, top_k=top_k, top_p=top_p).tolist())
+			response = tokenizer.decode(model.generate(tokenizer, out_fn=out_fn, progress=(progress_bar, progress_text), idx=context, max_tokens_generate=n_tokens, temperature=temperature, top_k=top_k, top_p=top_p).tolist())
 		st.balloons()
 
 footer="""<style>

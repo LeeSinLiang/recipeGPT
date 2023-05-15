@@ -9,5 +9,5 @@
 	"n_head": 6,
 	"n_layer": 6,
 	"pDropout": 0.2,
-	"vocab_size": 5000
+	"vocab_size": 2500
 }
