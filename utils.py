@@ -1,4 +1,5 @@
 import torch
+import json
 from torch.nn import functional as F
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -39,3 +40,18 @@ def top_k_top_p_filter(logits, top_k:int=0, top_p:float=1.0):
 		indices_to_remove = filter.scatter(1, sorted_indices, filter)
 		logits[indices_to_remove] = float('-inf')
 	return logits
+
+
+class Tokenizer:
+	def __init__(self, tokenizer_file):
+		with open(tokenizer_file, 'r') as f:
+			data = json.load(f)
+
+		self._char_to_idx = data['char_to_idx']
+		self._idx_to_char = data['idx_to_char']
+	
+	def encode(self, text):
+		return [self._char_to_idx[c] for c in text]
+	
+	def decode(self, input_ids):
+		return ''.join([self._idx_to_char[str(i)] for i in input_ids])

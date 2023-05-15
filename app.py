@@ -1,12 +1,12 @@
+from io import StringIO
+from gpt import GPT
+from config import GPTConfig
+from utils import Tokenizer
+from transformers import GPT2TokenizerFast
 import json
 import torch
 import streamlit as st
-from io import StringIO
-from gpt import *
-from config import GPTConfig
-from transformers import GPT2TokenizerFast
 
-tokenizer = GPT2TokenizerFast(tokenizer_file ='config/tokenizer.json', model_max_length=256)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 st.set_page_config(page_title='microGPT: Recipe Generation!', page_icon='😋')
@@ -15,20 +15,21 @@ st.set_page_config(page_title='microGPT: Recipe Generation!', page_icon='😋')
 def load_model(model_file, cfg):
 	model = GPT(cfg.vocab_size, cfg.max_length, cfg.n_emb, cfg.n_head, cfg.n_layer)
 	model = model.to(device)
+	print('----')
 	model.load_state_dict(torch.load(model_file, map_location=device))
 	model.eval()
 
 	return model
 
 @st.cache_resource
-def load_tokenizer(vocab_file):
-	with open(vocab_file, 'r') as f:
-		data = json.load(f)
-
-	char_to_idx = data['char_to_idx']
-	idx_to_char = data['idx_to_char']
-
-	return char_to_idx, idx_to_char
+def load_tokenizer(tokenizer_file, mode):
+	if mode == 'bpe':
+		tokenizer = GPT2TokenizerFast(tokenizer_file = tokenizer_file, model_max_length=256)		
+	elif mode == 'char':
+		tokenizer = Tokenizer(tokenizer_file=tokenizer_file)
+	else:
+		raise Exception('Incorrect mode.')
+	return tokenizer
 
 hide_menu_style = """
 	<style>
@@ -48,9 +49,7 @@ cfg = GPTConfig(**config)
 
 with st.spinner('Loading Model...'):
 	model = load_model('models/recipeBPE-2.2876', cfg)
-	char_to_idx, idx_to_char = load_tokenizer('config/vocab.json')
-	encode = lambda s: [char_to_idx[c] for c in s]
-	decode = lambda idx: ''.join([idx_to_char[str(i)] for i in idx])
+	tokenizer = load_tokenizer('config/tokenizer.json', 'bpe')
 
 with st.form("input"):
 	st.write('<p style="font-size: 20px;">Recipe Title:</p>', unsafe_allow_html=True)
@@ -67,9 +66,9 @@ with st.form("input"):
 
 if submitted:
 	with torch.no_grad():
-		# print(decode(model.generate(context, max_tokens_generate=500).tolist()))
+		# print(tokenizer.decode(model.generate(context, max_tokens_generate=500).tolist()))
 		context_str = 'Title: ' + context
-		context = torch.tensor(encode(context_str), dtype=torch.long, device=device).reshape(1, -1)
+		context = torch.tensor(tokenizer.encode(context_str), dtype=torch.long, device=device).reshape(1, -1)
 		progress_text = "Operation in progress. Please wait."
 		progress_bar = st.progress(0, text=progress_text)
 		placeholder = st.empty()
@@ -79,7 +78,7 @@ if submitted:
 				buffer.write(b + '')
 				output_fn(buffer.getvalue() + '')
 			out_fn(context_str)
-			response = decode(model.generate(decode, out_fn=out_fn, progress=(progress_bar, progress_text), idx=context, max_tokens_generate=n_tokens, temperature=temperature, top_k=top_k, top_p=top_p).tolist())
+			response = tokenizer.decode(model.generate(tokenizer.decode, out_fn=out_fn, progress=(progress_bar, progress_text), idx=context, max_tokens_generate=n_tokens, temperature=temperature, top_k=top_k, top_p=top_p).tolist())
 		st.balloons()
 
 footer="""<style>
