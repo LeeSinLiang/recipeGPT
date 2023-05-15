@@ -4,7 +4,9 @@ import streamlit as st
 from io import StringIO
 from gpt import *
 from config import GPTConfig
+from transformers import GPT2TokenizerFast
 
+tokenizer = GPT2TokenizerFast(tokenizer_file ='config/tokenizer.json', model_max_length=256)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 st.set_page_config(page_title='microGPT: Recipe Generation!', page_icon='😋')
@@ -45,7 +47,7 @@ with open('config/config.json', 'r') as f:
 cfg = GPTConfig(**config)
 
 with st.spinner('Loading Model...'):
-	model = load_model('models/recipe-0.7157.pth', cfg)
+	model = load_model('models/recipeBPE-2.2876', cfg)
 	char_to_idx, idx_to_char = load_tokenizer('config/vocab.json')
 	encode = lambda s: [char_to_idx[c] for c in s]
 	decode = lambda idx: ''.join([idx_to_char[str(i)] for i in idx])
