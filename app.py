@@ -50,7 +50,7 @@ with open('config/config.json', 'r') as f:
 cfg = GPTConfig(**config)
 
 with st.spinner('Loading Model...'):
-    model = load_model('models/recipeChar-0.6827.pth', cfg)
+    model = load_model('models/recipe-0.7157.pth', cfg)
     char_to_idx, idx_to_char = load_tokenizer('config/vocab.json')
     def encode(s): return [char_to_idx[c] for c in s]
     def decode(idx): return ''.join([idx_to_char[str(i)] for i in idx])
