@@ -109,6 +109,11 @@ class GPT(nn.Module):
 
 	def generate(self, decoder, out_fn, progress, idx:Tensor, max_tokens_generate:int, temperature:int=1, top_k:float=0.0, top_p:float=1.0):
 		# idx (B, T)
+		check = {
+			'eos': '\nTitle',
+			'current': '',
+			'idx': 0
+		}
 		for count in range(max_tokens_generate):
 			# crop it to get latest <max_length> tokens since pos_emb only has max_length size
 			idx_condition = idx[:, -self.max_length:]
@@ -118,7 +123,18 @@ class GPT(nn.Module):
 
 			probs = F.softmax(logits, dim = 1)
 			idx_next = torch.multinomial(probs, num_samples = 1)
-			out_fn(decoder([idx_next.item()]))
+			res = decoder([idx_next.item()])
+			if (res == check['eos'][check['idx']]):
+				if (check['idx'] == len(check['eos'])):
+					break
+				check['current'] += res
+				check['idx'] += 1
+				continue
+			if (check['idx'] > 0):
+				out_fn(check['current'])
+				check['current'] = ''
+				check['idx'] = 0
+			out_fn(res)
 			idx = torch.cat((idx, idx_next), dim = 1)
 			progress_bar, progress_text = progress
 			progress_bar.progress(math.floor(((count+1)/max_tokens_generate)*100), text=progress_text)
