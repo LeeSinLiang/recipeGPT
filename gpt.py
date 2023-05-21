@@ -110,7 +110,7 @@ class GPT(nn.Module):
 	def generate(self, decoder, out_fn, progress, idx:Tensor, max_tokens_generate:int, temperature:int=1, top_k:float=0.0, top_p:float=1.0):
 		# idx (B, T)
 		check = {
-			'eos': '\nTitle',
+			'target': '\nTitle',
 			'current': '',
 			'idx': 0
 		}
@@ -124,18 +124,22 @@ class GPT(nn.Module):
 			probs = F.softmax(logits, dim = 1)
 			idx_next = torch.multinomial(probs, num_samples = 1)
 			res = decoder([idx_next.item()])
-			if (res == check['eos'][check['idx']]):
-				if (check['idx'] == len(check['eos'])):
-					break
-				check['current'] += res
-				check['idx'] += 1
-				continue
-			if (check['idx'] > 0):
-				out_fn(check['current'])
-				check['current'] = ''
-				check['idx'] = 0
-			out_fn(res)
 			idx = torch.cat((idx, idx_next), dim = 1)
+			if (res == check['target'][check['idx']]):
+				if (check['idx'] == len(check['target'])-1):
+					break
+				check['idx'] += 1
+				check['current'] += res
+				continue
+			elif (check['idx'] > 0):
+				check['idx'] = 1
+				out_fn(check['current'])
+				check['current'] = res
+			else:
+				out_fn(res)
 			progress_bar, progress_text = progress
 			progress_bar.progress(math.floor(((count+1)/max_tokens_generate)*100), text=progress_text)
+
+		progress_bar, progress_text = progress
+		progress_bar.progress(100, text='Operation successful!')
 		return idx.view(idx.shape[1], )
