@@ -145,4 +145,6 @@ class GPT(nn.Module):
             progress_bar, progress_text = progress
             progress_bar.progress(math.floor(
                 ((count+1)/max_tokens_generate)*100), text=progress_text)
+        progress_bar, _ = progress
+        progress_bar.progress(100, text='Operation Successful!')
         return idx.view(idx.shape[1], )
