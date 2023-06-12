@@ -2,9 +2,11 @@ from io import StringIO
 from gpt import GPT
 from config import GPTConfig
 from utils import Tokenizer
+from download import download_with_progress
 from transformers import GPT2TokenizerFast
 import json
 import torch
+import os
 import streamlit as st
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -13,18 +15,18 @@ st.set_page_config(page_title='microGPT: Recipe Generation!', page_icon='😋')
 
 @st.cache_resource
 def load_model(model_file, cfg):
-	model = GPT(cfg.vocab_size, cfg.max_length, cfg.n_emb, cfg.n_head, cfg.n_layer)
+	model = GPT(cfg.vocab_size, cfg.max_length, cfg.n_emb, cfg.n_head, cfg.n_layer, cfg.pDropout)
 	model = model.to(device)
 	print('----')
-	model.load_state_dict(torch.load(model_file, map_location=device))
+	model.load_state_dict(torch.load(model_file, map_location=device)['model_state_dict'])
 	model.eval()
 
 	return model
 
 @st.cache_resource
-def load_tokenizer(tokenizer_file, mode):
+def load_tokenizer(tokenizer_file, mode, cfg):
 	if mode == 'bpe':
-		tokenizer = GPT2TokenizerFast(tokenizer_file = tokenizer_file, model_max_length=256)
+		tokenizer = GPT2TokenizerFast(tokenizer_file = tokenizer_file, model_max_length=cfg.max_length)
 	elif mode == 'char':
 		tokenizer = Tokenizer(tokenizer_file=tokenizer_file)
 	else:
@@ -47,9 +49,13 @@ with open('config/config.json', 'r') as f:
 
 cfg = GPTConfig(**config)
 
+if os.path.exists('models/recipeGPT-v1.pth') is False:
+    with st.spinner('Downloading Model... (This might take a while)'):
+    	download_with_progress('https://github.com/LeeSinLiang/recipeGPT/releases/download/v1/recipeGPT-v1.pth', 'models/recipeGPT-v1.pth')
+
 with st.spinner('Loading Model...'):
-	model = load_model('models/recipeBPE-2.2876.pth', cfg)
-	tokenizer = load_tokenizer('config/tokenizer.json', 'bpe')
+	model = load_model('models/recipeGPT-v1.pth', cfg)
+	tokenizer = load_tokenizer('config/tokenizer.json', 'bpe', cfg)
 
 with st.form("input"):
 	st.write('<p style="font-size: 20px;">Recipe Title:</p>', unsafe_allow_html=True)
@@ -67,7 +73,7 @@ with st.form("input"):
 if submitted:
 	with torch.no_grad():
 		# print(tokenizer.decode(model.generate(context, max_tokens_generate=500).tolist()))
-		context_str = 'Title: ' + context
+		context_str = 'Title: ' + context + '\n'
 		context = torch.tensor(tokenizer.encode(context_str), dtype=torch.long, device=device).reshape(1, -1)
 		progress_text = "Operation in progress. Please wait."
 		progress_bar = st.progress(0, text=progress_text)

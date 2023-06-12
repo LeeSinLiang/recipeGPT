@@ -1,13 +1,13 @@
 {
 	"batch_size": 64,
-	"max_length": 256,
+	"max_length": 512,
 	"lr": 3e-4,
 	"n_steps": 5000,
 	"eval_interval": 500,
-	"eval_iters": 200,
-	"n_emb": 384,
-	"n_head": 6,
-	"n_layer": 6,
-	"pDropout": 0.2,
-	"vocab_size": 2500
+	"eval_iters": 100,
+	"n_emb": 768,
+	"n_head": 8,
+	"n_layer": 8,
+	"pDropout": 0.1,
+	"vocab_size": 8192
 }
